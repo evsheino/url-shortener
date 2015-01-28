@@ -1,6 +1,7 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.http import Http404, HttpResponse
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from urlshortener.models import ShortUrl
 
@@ -17,6 +18,7 @@ def get(request, code):
 
     return redirect(url_obj.real_url, permanent=True)
 
+@csrf_exempt
 @require_POST
 def shorten(request):
     """
