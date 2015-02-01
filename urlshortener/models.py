@@ -17,6 +17,21 @@ class ShortUrl(models.Model):
     # has been saved for the first time.
     url_code = models.CharField(max_length=20, blank=True)
 
+    @staticmethod
+    def generate_url_code(key):
+        """
+        Generate a short code for a URL from a number (the ShortUrl object's id).
+        """
+
+        digits = []
+
+        while key > 0:
+            digits.append(key % BASE)
+            key //= BASE
+
+        digits.reverse()
+        return ''.join([ALPHABET[x] for x in digits])
+
     def save(self, *args, **kwargs):
         """
         Override the save method in order to set the url_code attribute
@@ -27,34 +42,16 @@ class ShortUrl(models.Model):
         super(ShortUrl, self).save(*args, **kwargs)
 
         if not self.url_code:
-            self._generate_url_code()
+            self.url_code = self.generate_url_code(self.id)
             super(ShortUrl, self).save(*args, **kwargs)
-
-    def _generate_url_code(self):
-        """
-        Set the url_code attribute by generating a string based
-        on the id of this object.
-
-        Raises a ValueError if the object has no id.
-        """
-
-        digits = []
-
-        number = self.id
-        try:
-            while number > 0:
-                digits.append(number % BASE)
-                number //= BASE
-        except TypeError:
-            raise ValueError("Object has to be persisted before the url_code can be generated.")
-
-        digits.reverse()
-        self.url_code = ''.join([ALPHABET[x] for x in digits])
 
     def clean(self):
         """
         Validate the URL and make sure it's handled as an absolute URL.
         """
+        
+        if not self.real_url:
+            raise ValidationError("URL is required")
 
         parsed = urlsplit(self.real_url, scheme='http')
 
