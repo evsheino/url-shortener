@@ -30,7 +30,7 @@ class ShortUrlMethodTests(TestCase):
 
 class ShortUrlViewTests(TestCase):
     def test_get_redirects_to_appropriate_url(self):
-        url = "http://www.google.com"
+        url = "google.com"
         s = ShortUrl(real_url=url)
         s.save()
 

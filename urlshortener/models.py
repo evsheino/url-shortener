@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from urllib.parse import urlsplit, urlunsplit
 import string
 
 ALPHABET = string.ascii_letters + string.digits
@@ -48,3 +50,23 @@ class ShortUrl(models.Model):
 
         digits.reverse()
         self.url_code = ''.join([ALPHABET[x] for x in digits])
+
+    def clean(self):
+        """
+        Validate the URL and make sure it's handled as an absolute URL.
+        """
+
+        parsed = urlsplit(self.real_url, scheme='http')
+
+        if not parsed.scheme in ['http', 'https', 'ftp']:
+            # These are the only schemes that Django will redirect by default and they
+            # should suffice.
+            raise ValidationError("URL scheme not supported")
+
+        self.real_url = urlunsplit(parsed)
+        if parsed.netloc == '':
+            # The given URL didn't include the leading '//' so it was basically parsed
+            # as a relative URL. Because of this, putting it back together will introduce
+            # an extra slash - get rid of it.
+            self.real_url = self.real_url.replace('///', '//', 1)
+

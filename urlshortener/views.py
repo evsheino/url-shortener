@@ -32,9 +32,9 @@ def shorten(request):
     real_url = request.POST.get('link', None)
     url_obj = ShortUrl(real_url=real_url)
     try:
-        url_obj.clean_fields()
+        url_obj.full_clean()
         url_obj.save()
-    except ValidationError:
-        return HttpResponse(status=400)
+    except ValidationError as e:
+        return HttpResponse(e.messages, status=400)
 
     return HttpResponse(url_obj.url_code, content_type="text/plain")
