@@ -14,7 +14,10 @@ def get(request, code):
     or the id is omitted.
     """
 
-    url_obj = get_object_or_404(ShortUrl, url_code=code)
+    try:
+        url_obj = ShortUrl.objects.get_by_code(code)
+    except ShortUrl.DoesNotExist:
+        raise Http404("No matching URL")
 
     return redirect(url_obj.real_url, permanent=True)
 

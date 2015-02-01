@@ -1,10 +1,16 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from urllib.parse import urlsplit, urlunsplit
 import string
 
+# The symbols used in the shortened url id.
 ALPHABET = string.ascii_letters + string.digits
 BASE = len(ALPHABET)
+
+class ShortUrlManager(models.Manager):
+    def get_by_code(self, code):
+        return self.get(id=ShortUrl.decode(code))
+            
 
 class ShortUrl(models.Model):
     """
@@ -12,15 +18,17 @@ class ShortUrl(models.Model):
     """
 
     real_url = models.CharField(max_length=200)
-    # Allowing url_code to be blank because the url_code is based
-    # on the object's id which is not available before the object
-    # has been saved for the first time.
-    url_code = models.CharField(max_length=20, blank=True)
+
+    objects = ShortUrlManager()
+
+    def _get_url_code(self):
+        return self.encode(self.id)
+    url_code = property(_get_url_code)
 
     @staticmethod
-    def generate_url_code(key):
+    def encode(key):
         """
-        Generate a short code for a URL from a number (the ShortUrl object's id).
+        Generate a short id for a URL from a number (the ShortUrl object's id).
         """
 
         digits = []
@@ -32,18 +40,15 @@ class ShortUrl(models.Model):
         digits.reverse()
         return ''.join([ALPHABET[x] for x in digits])
 
-    def save(self, *args, **kwargs):
+    @staticmethod
+    def decode(code):
         """
-        Override the save method in order to set the url_code attribute
-        based on the model object's id
+        Decode a shortened url id.
         """
 
-        # Save first so that an id is assigned
-        super(ShortUrl, self).save(*args, **kwargs)
-
-        if not self.url_code:
-            self.url_code = self.generate_url_code(self.id)
-            super(ShortUrl, self).save(*args, **kwargs)
+        # E.g. 'cLs' maps to our base 62 alphabet as [2, 37, 18]
+        # -> 2 * 62**2 + 37 * 62**1 + 18 * 62**0 = 10000
+        return sum([ALPHABET.index(char)*BASE**i for i, char in enumerate(code[::-1])])
 
     def clean(self):
         """
@@ -55,7 +60,7 @@ class ShortUrl(models.Model):
 
         parsed = urlsplit(self.real_url, scheme='http')
 
-        if not parsed.scheme in ['http', 'https', 'ftp']:
+        if not parsed.scheme in ['http', 'https', 'ftp', 'ftps']:
             # These are the only schemes that Django will redirect by default and they
             # should suffice.
             raise ValidationError("URL scheme not supported")

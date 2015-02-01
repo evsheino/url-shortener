@@ -2,27 +2,22 @@ from django.test import TestCase, Client
 from urlshortener.models import ShortUrl
 
 class ShortUrlModelTests(TestCase):
-    def test_generate_url_code_generates_correctly(self):
-        self.assertEquals('ec', ShortUrl.generate_url_code(250))
-        self.assertEquals('fsr', ShortUrl.generate_url_code(20353))
-        self.assertEquals('k4U8YJ', ShortUrl.generate_url_code(9999999999))
+    def test_encode_generates_correctly(self):
+        self.assertEquals('ec', ShortUrl.encode(250))
+        self.assertEquals('fsr', ShortUrl.encode(20353))
+        self.assertEquals('k4U8YJ', ShortUrl.encode(9999999999))
 
-    def test_save_instance_generates_correctly_for_first_object(self):
-        s = ShortUrl(real_url="http://www.google.com")
-        s.id = 1
-        s.save()
-        self.assertEquals('b', s.url_code)
+    def test_decode_works(self):
+        self.assertEquals(250, ShortUrl.decode('ec'))
+        self.assertEquals(20353, ShortUrl.decode('fsr'))
+        self.assertEquals(9999999999, ShortUrl.decode('k4U8YJ'))
 
-    def test_save_instance_generates_url_code(self):
-        s = ShortUrl(real_url="http://www.google.com")
-        s.id = 2
-        s.save()
-        self.assertEquals('c', s.url_code)
 
+class ShortUrlManagerTests(TestCase):
+    def test_get_by_url_code_works(self):
         s = ShortUrl(real_url="http://www.google.com")
-        s.id = 3
         s.save()
-        self.assertEquals('d', s.url_code)
+        self.assertEquals(ShortUrl.objects.get_by_code('b'), s)
 
 
 class ShortUrlViewTests(TestCase):
@@ -47,21 +42,21 @@ class ShortUrlViewTests(TestCase):
         url = "http://www.something.com"
         client = Client()
         response = client.post('/shorten', { 'link': url })
-        short = response.content
+        short = response.content.decode("utf-8")
 
-        url_obj = ShortUrl.objects.get(url_code=short)
+        url_obj = ShortUrl.objects.get_by_code(short)
         self.assertEquals(url, url_obj.real_url)
 
     def test_shorten_accepted_schemes(self):
-        schemes = ["http://", "https://", "ftp://"]
+        schemes = ["http://", "https://", "ftp://", "ftps://"]
         url = "www.something.com"
         client = Client()
         for scheme in schemes:
             full_url = scheme + url
             response = client.post('/shorten', { 'link': full_url })
-            short = response.content
+            short = response.content.decode("utf-8")
 
-            url_obj = ShortUrl.objects.get(url_code=short)
+            url_obj = ShortUrl.objects.get_by_code(short)
             self.assertEquals(full_url, url_obj.real_url)
 
     def test_shorten_returns_400_when_scheme_not_acceptable(self):
@@ -76,9 +71,9 @@ class ShortUrlViewTests(TestCase):
         client = Client()
         for url in urls:
             response = client.post('/shorten', { 'link': url })
-            short = response.content
+            short = response.content.decode("utf-8")
 
-            url_obj = ShortUrl.objects.get(url_code=short)
+            url_obj = ShortUrl.objects.get_by_code(short)
             self.assertEquals("http://" + url, url_obj.real_url)
 
     def test_shorten_returns_400_if_no_link_given(self):
