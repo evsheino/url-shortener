@@ -1,7 +1,7 @@
 # URL shortening service
 
 POST /shorten
-Parameters: Parameter link should contain the link to shorten.
+Parameters: Parameter link should contain the link to shorten. Accepted protocols are http, https and ftp.
 Returns: Id for the shortened link in text/plain format.
 
 GET /{id}
