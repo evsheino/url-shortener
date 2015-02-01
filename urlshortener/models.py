@@ -14,21 +14,30 @@ class ShortUrlManager(models.Manager):
 
 class ShortUrl(models.Model):
     """
-    An object that represents a shortened url
+    An object that represents a shortened URL.
     """
 
     real_url = models.CharField(max_length=200)
 
     objects = ShortUrlManager()
 
-    def _get_url_code(self):
-        return self.encode(self.id)
-    url_code = property(_get_url_code)
+    @property
+    def url_code(self):
+        """
+        The short id for the URL.
+        """
+
+        try:
+            return self.encode(self.id)
+        except TypeError:
+            # No id assigned to the instance yet.
+            return None
 
     @staticmethod
     def encode(key):
         """
-        Generate a short id for a URL from a number (the ShortUrl object's id).
+        Encode the given number (the ShortUrl object's id) with the set of symbols 
+        specified in 'ALPHABET' to be used as the short id of the URL.
         """
 
         digits = []
@@ -61,8 +70,8 @@ class ShortUrl(models.Model):
         parsed = urlsplit(self.real_url, scheme='http')
 
         if not parsed.scheme in ['http', 'https', 'ftp', 'ftps']:
-            # These are the only schemes that Django will redirect by default and they
-            # should suffice.
+            # These are the only schemes that Django will redirect by default
+            # so allow those only for now.
             raise ValidationError("URL scheme not supported")
 
         self.real_url = urlunsplit(parsed)

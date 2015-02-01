@@ -38,6 +38,12 @@ class ShortUrlViewTests(TestCase):
 
         self.assertEquals(404, response.status_code)
 
+    def test_get_returns_404_when_no_parameter_given(self):
+        client = Client()
+        response = client.get('/get')
+
+        self.assertEquals(404, response.status_code)
+
     def test_shorten_creates_new_shorturl(self):
         url = "http://www.something.com"
         client = Client()

@@ -10,8 +10,7 @@ def get(request, code):
     """
     Redirect to a previously stored url based on the short url id given.
     
-    Returns a 404 error if no url is found for the given id
-    or the id is omitted.
+    Returns a 404 error if no matching url is found for the given id.
     """
 
     try:
@@ -29,7 +28,7 @@ def shorten(request):
     encoded id as plain text.
 
     Returns a 400 error if the 'link' parameter is omitted or
-    is blank.
+    is blank, or the URL scheme (protocol) is not allowed.
     """
 
     real_url = request.POST.get('link', None)
